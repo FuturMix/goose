@@ -95,7 +95,7 @@ export function buildInitScript(options?: {
         description: s.description,
         content: s.instructions ?? s.content ?? "",
         directory: (s.path ?? ("/mock/.agents/skills/" + s.name + "/SKILL.md")).replace(/\\/SKILL\\.md$/, ""),
-        global: true,
+        global: s.global ?? true,
       });
 
       function nowIso() {

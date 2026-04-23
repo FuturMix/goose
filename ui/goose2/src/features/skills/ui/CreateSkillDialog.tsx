@@ -20,7 +20,13 @@ interface CreateSkillDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated?: () => void;
-  editingSkill?: { name: string; description: string; instructions: string };
+  editingSkill?: {
+    name: string;
+    description: string;
+    instructions: string;
+    global?: boolean;
+    projectDir?: string;
+  };
 }
 
 export function CreateSkillDialog({
@@ -82,7 +88,10 @@ export function CreateSkillDialog({
     setError(null);
     try {
       if (isEditing) {
-        await updateSkill(name, description.trim(), instructions);
+        await updateSkill(name, description.trim(), instructions, {
+          global: editingSkill?.global ?? true,
+          projectDir: editingSkill?.projectDir,
+        });
       } else {
         await createSkill(name, description.trim(), instructions);
       }

@@ -210,6 +210,7 @@ describe("CreateSkillDialog", () => {
         "code-review",
         "Updated description",
         "Review carefully",
+        { global: true, projectDir: undefined },
       );
     });
 

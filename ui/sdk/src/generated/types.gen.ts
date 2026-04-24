@@ -90,10 +90,39 @@ export type GetExtensionsRequest = {
  */
 export type GetExtensionsResponse = {
     /**
-     * Array of ExtensionEntry objects with `enabled` flag and config details.
+     * Array of ExtensionEntry objects with `enabled` flag, `configKey`, and flattened config details.
      */
     extensions: Array<unknown>;
     warnings: Array<string>;
+};
+
+/**
+ * Persist a new extension to the user's global goose config.
+ */
+export type AddConfigExtensionRequest = {
+    name: string;
+    /**
+     * Extension configuration. Must be a JSON object matching one of the
+     * `ExtensionConfig` variants (e.g. `stdio`, `streamable_http`, `builtin`).
+     * `name` and `enabled` are injected server-side.
+     */
+    extensionConfig?: unknown;
+    enabled?: boolean;
+};
+
+/**
+ * Remove a persisted extension from the user's global goose config.
+ */
+export type RemoveConfigExtensionRequest = {
+    configKey: string;
+};
+
+/**
+ * Toggle the `enabled` flag for a persisted extension in the user's global goose config.
+ */
+export type ToggleConfigExtensionRequest = {
+    configKey: string;
+    enabled: boolean;
 };
 
 export type GetSessionExtensionsRequest = {
@@ -360,6 +389,14 @@ export type UpdateSessionProjectRequest = {
 };
 
 /**
+ * Rename a session.
+ */
+export type RenameSessionRequest = {
+    sessionId: string;
+    title: string;
+};
+
+/**
  * Archive a session (soft delete).
  */
 export type ArchiveSessionRequest = {
@@ -374,7 +411,7 @@ export type UnarchiveSessionRequest = {
 };
 
 /**
- * Create a new source (global or project-scoped).
+ * Create a new source in an explicit target scope (global or project-scoped).
  */
 export type CreateSourceRequest = {
     type: SourceType;
@@ -391,15 +428,15 @@ export type CreateSourceRequest = {
 /**
  * The type of source entity.
  */
-export type SourceType = 'skill';
+export type SourceType = 'skill' | 'builtinSkill' | 'recipe' | 'subrecipe' | 'agent';
 
 export type CreateSourceResponse = {
     source: SourceEntry;
 };
 
 /**
- * A source — a user-editable entity backed by an on-disk directory. Sources
- * may be either `global` (shared across all projects) or project-specific.
+ * A source discovered by Goose and backed by an on-disk path. Sources may be
+ * either `global` (shared across all projects) or project-specific.
  */
 export type SourceEntry = {
     type: SourceType;
@@ -407,7 +444,8 @@ export type SourceEntry = {
     description: string;
     content: string;
     /**
-     * Absolute path to the source's directory on disk.
+     * Absolute path to the source on disk. A directory for skills, a file for
+     * recipes and agents.
      */
     directory: string;
     /**
@@ -415,11 +453,19 @@ export type SourceEntry = {
      * when it lives inside a specific project.
      */
     global: boolean;
+    /**
+     * Paths (absolute) of additional files that live alongside the source.
+     * Only skills currently populate this; empty for other source types.
+     */
+    supportingFiles?: Array<string>;
 };
 
 /**
- * List sources. If `type` is omitted, sources of all known types are returned.
- * Both global and project-scoped sources are included when `project_dir` is set.
+ * List discovered sources.
+ *
+ * Today this endpoint only returns skills. If `type` is omitted, it defaults
+ * to listing skill sources. Both global and project-scoped skills are included
+ * when `project_dir` is set.
  */
 export type ListSourcesRequest = {
     type?: SourceType | null;
@@ -431,15 +477,14 @@ export type ListSourcesResponse = {
 };
 
 /**
- * Update an existing source's description and content.
+ * Update an existing source's name, description, and content by absolute path.
  */
 export type UpdateSourceRequest = {
     type: SourceType;
+    path: string;
     name: string;
     description: string;
     content: string;
-    global: boolean;
-    projectDir?: string | null;
 };
 
 export type UpdateSourceResponse = {
@@ -447,23 +492,19 @@ export type UpdateSourceResponse = {
 };
 
 /**
- * Delete a source and its on-disk directory.
+ * Delete a source and its on-disk directory by absolute path.
  */
 export type DeleteSourceRequest = {
     type: SourceType;
-    name: string;
-    global: boolean;
-    projectDir?: string | null;
+    path: string;
 };
 
 /**
- * Export a source as a portable JSON payload.
+ * Export a source at an absolute path as a portable JSON payload.
  */
 export type ExportSourceRequest = {
     type: SourceType;
-    name: string;
-    global: boolean;
-    projectDir?: string | null;
+    path: string;
 };
 
 export type ExportSourceResponse = {
@@ -473,8 +514,8 @@ export type ExportSourceResponse = {
 
 /**
  * Import a source from a JSON export payload produced by `_goose/sources/export`.
- * The imported source is written under the given scope; on name collisions a
- * `-imported` suffix is appended.
+ * The imported source is written into the explicit target scope; on name
+ * collisions a `-imported` suffix is appended.
  */
 export type ImportSourcesRequest = {
     data: string;
@@ -626,7 +667,7 @@ export type DictationModelSelectRequest = {
 export type ExtRequest = {
     id: string;
     method: string;
-    params?: AddExtensionRequest | RemoveExtensionRequest | GetToolsRequest | ReadResourceRequest | UpdateWorkingDirRequest | DeleteSessionRequest | GetExtensionsRequest | GetSessionExtensionsRequest | ListProvidersRequest | RefreshProviderInventoryRequest | ReadConfigRequest | UpsertConfigRequest | RemoveConfigRequest | CheckSecretRequest | UpsertSecretRequest | RemoveSecretRequest | ExportSessionRequest | ImportSessionRequest | UpdateSessionProjectRequest | ArchiveSessionRequest | UnarchiveSessionRequest | CreateSourceRequest | ListSourcesRequest | UpdateSourceRequest | DeleteSourceRequest | ExportSourceRequest | ImportSourcesRequest | DictationTranscribeRequest | DictationConfigRequest | DictationModelsListRequest | DictationModelDownloadRequest | DictationModelDownloadProgressRequest | DictationModelCancelRequest | DictationModelDeleteRequest | DictationModelSelectRequest | {
+    params?: AddExtensionRequest | RemoveExtensionRequest | GetToolsRequest | ReadResourceRequest | UpdateWorkingDirRequest | DeleteSessionRequest | GetExtensionsRequest | AddConfigExtensionRequest | RemoveConfigExtensionRequest | ToggleConfigExtensionRequest | GetSessionExtensionsRequest | ListProvidersRequest | RefreshProviderInventoryRequest | ReadConfigRequest | UpsertConfigRequest | RemoveConfigRequest | CheckSecretRequest | UpsertSecretRequest | RemoveSecretRequest | ExportSessionRequest | ImportSessionRequest | UpdateSessionProjectRequest | RenameSessionRequest | ArchiveSessionRequest | UnarchiveSessionRequest | CreateSourceRequest | ListSourcesRequest | UpdateSourceRequest | DeleteSourceRequest | ExportSourceRequest | ImportSourcesRequest | DictationTranscribeRequest | DictationConfigRequest | DictationModelsListRequest | DictationModelDownloadRequest | DictationModelDownloadProgressRequest | DictationModelCancelRequest | DictationModelDeleteRequest | DictationModelSelectRequest | {
         [key: string]: unknown;
     } | null;
 };
